@@ -4,6 +4,8 @@ Traditional research on tax havens –and more broadly, the network of global co
 
 ### Contents
 
+- `guidelines.pdf` is the research proposal I first wrote for my Social Networks class in Columbia University.
+
 - `0-data.md` includes web scraping and the creation of two datasets.
 
 - `1-EDA.md` includes exploratory data analysis and a Shiny app, available [HERE].
