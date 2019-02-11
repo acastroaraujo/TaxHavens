@@ -1,0 +1,222 @@
+Data
+================
+
+**Last updated**: February 11, 2019
+
+Web Scraping
+------------
+
+This is the website we're scraping: [UNCTAD Bilateral FDI Statistics](http://unctad.org/en/Pages/DIAE/FDI%20Statistics/FDI-Statistics-Bilateral.aspx).
+
+We will assemble two network datasets from 204 excel files available from UNCDAT, an intergovernmental body that's part of the United Nations and that deals with "trade, investment, and development issues"
+
+``` r
+## Get ISO codes from the countrycode package
+iso_codes <- countrycode::codelist %>% 
+  select(iso3c) %>% 
+  filter(!is.na(iso3c)) %>% 
+  pull()
+
+URL <- str_c("http://unctad.org/Sections/dite_fdistat/docs/webdiaeia2014d3_",
+                iso_codes, ".xls")
+DESTINATION <- str_c("xls_files/", iso_codes, ".xls")
+download.file(SOURCE, destfile = DESTINATION)
+```
+
+There should be 203 files in the `xls_files/` directory.
+
+------------------------------------------------------------------------
+
+You'll notice that the files are stored in a *horrible* format for data analysis. The following (also horrible) function will do the cleaning for you. But keep in mind that this function will not work for anything other than these particular files.
+
+Before continuing, open `KAZ.xls` file and **manually** rename the first to sheets, from "inflows(gross)" to just "inflows" and from "outflows(gross)" to just "outflows".
+
+``` r
+read_excel_and_clean <- function(x, SHEET) {
+  stopifnot(SHEET %in% c("inflows", "outflows"))
+  data <- read_excel(x, sheet = SHEET, skip = 4) 
+                     ## sheet = "inflows" or "outflows"
+  
+  ## Row Index
+  index_row <- data %>% 
+    select(`2001`:`2012`) %>% 
+    transpose() %>% 
+    map(is.na) %>% 
+    map(sum) %>% 
+    map_lgl(~. > 0)
+  
+  ## Column Index
+  index_col <- colnames(data) %in% 2001:2012
+
+  ## Clean rows
+  data <- data[!index_row, ] %>% 
+    filter(`2012` != 2012)  ## This removes repeated year column
+
+  ## Clean columns
+  rows <- nrow(data[, !index_col])
+  cols <- ncol(data[, !index_col])
+  place <- vector("character", length = rows)
+
+  for (i in seq_len(rows)) {
+    for (k in seq_len(cols)) {
+      if (!is.na(data[ , !index_col][i, k])) {
+        place[[i]] <- data[, !index_col][i, k]
+      }
+    }
+  }
+  
+  data <- data[index_col]
+  data$place <- unlist(place)
+  data <- data %>% 
+    select(place, everything()) %>% 
+    gather(`2001`:`2012`, key = year, value = SHEET) %>% 
+    mutate(SHEET = ifelse(SHEET == "..", 0, SHEET) %>% as.numeric)
+  
+  return(data)
+}
+```
+
+**Get data into tidy format**
+
+``` r
+library(readxl)
+files <- list.files(path = "xls_files")
+PATH <- str_c("xls_files/", files)
+
+## Inflows
+inflows <- vector("list", length = length(files))
+for (i in seq_along(files)) {
+  inflows[[i]] <- read_excel_and_clean(PATH[[i]], SHEET = "inflows") %>% 
+    rename(inflow = SHEET)
+}
+names(inflows) <- files
+
+## Outflows
+outflows <- vector("list", length = length(files))
+for (i in seq_along(files)) {
+  outflows[[i]] <- read_excel_and_clean(PATH[[i]], SHEET = "outflows") %>% 
+    rename(outflow = SHEET)
+}
+names(outflows) <- files
+```
+
+**Note**: Some "`NA`s introduced by coercion" correspond to `GRD.xls` (Grenada), which doesn't have reported outflows.
+
+Creating the datasets
+---------------------
+
+``` r
+## Get country names
+country_names <- countrycode::countrycode(
+  str_replace(files, ".xls", ""), 
+  origin = "iso3c", 
+  destination = "country.name"
+  )
+
+target_info <- tibble(target = country_names, inflows) %>% 
+  unnest() %>% 
+  rename(source = place, flow = inflow) %>% 
+  select(source, target, flow, year)
+
+source_info <- tibble(source = country_names, outflows) %>% 
+  unnest() %>% 
+  rename(target = place, flow = outflow) %>% 
+  select(source, target, flow, year)
+```
+
+**Note:** The `flow` columns are in millions of dollars. Not sure if inflation is taken into account, though. \[**REVISE**\]
+
+We're almost done. Some of the nodes are aggregated categories such as "Developed economies" or "World", which might be interesting to analyze except that they are not recorded consistently.
+
+The final step is removing those aggregated categories:
+
+``` r
+clean_country_names <- function(x) {
+  iso <- countrycode::countrycode(
+    x, origin = "country.name", 
+    destination = "iso3c"
+    )
+  name <- countrycode::countrycode(
+    iso, origin = "iso3c", 
+    destination = "country.name"
+    )
+  return(name)
+}
+
+source_info <- source_info %>%
+  mutate(target = clean_country_names(target)) %>% 
+  filter(!is.na(target))
+
+target_info <- target_info %>% 
+  mutate(source = clean_country_names(source)) %>% 
+  filter(!is.na(source))
+
+readr::write_csv(source_info, "source_info.csv")
+readr::write_csv(target_info, "target_info.csv")
+```
+
+C'est fini.
+
+Here's a sneak peak at the datasets:
+
+``` r
+source_info <- read_csv("source_info.csv")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   source = col_character(),
+    ##   target = col_character(),
+    ##   flow = col_double(),
+    ##   year = col_double()
+    ## )
+
+``` r
+target_info <- read_csv("target_info.csv")
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   source = col_character(),
+    ##   target = col_character(),
+    ##   flow = col_double(),
+    ##   year = col_double()
+    ## )
+
+``` r
+arrange(source_info, -flow)
+```
+
+    ## # A tibble: 63,888 x 4
+    ##    source               target            flow  year
+    ##    <chr>                <chr>            <dbl> <dbl>
+    ##  1 United States        Netherlands    109097   2007
+    ##  2 Luxembourg           United Kingdom 101827.  2012
+    ##  3 Netherlands          United Kingdom  93104.  2005
+    ##  4 Luxembourg           United States   83674.  2011
+    ##  5 Luxembourg           Netherlands     72163.  2007
+    ##  6 Luxembourg           United Kingdom  68112.  2011
+    ##  7 United Arab Emirates Luxembourg      66966.  2008
+    ##  8 France               Belgium         63393.  2008
+    ##  9 Luxembourg           Netherlands     62712.  2002
+    ## 10 United Kingdom       United States   61668.  2007
+    ## # … with 63,878 more rows
+
+``` r
+arrange(target_info, -flow)
+```
+
+    ## # A tibble: 73,056 x 4
+    ##    source               target            flow  year
+    ##    <chr>                <chr>            <dbl> <dbl>
+    ##  1 United States        Luxembourg     117618.  2011
+    ##  2 United States        Luxembourg     108697.  2009
+    ##  3 United States        Luxembourg      98212.  2012
+    ##  4 United Kingdom       Luxembourg      91843.  2007
+    ##  5 Netherlands          United Kingdom  91575.  2005
+    ##  6 Netherlands          United States   75327   2008
+    ##  7 Luxembourg           Belgium         70706.  2011
+    ##  8 Hong Kong SAR China  China           70500.  2011
+    ##  9 United Kingdom       Luxembourg      67366.  2002
+    ## 10 United Arab Emirates Luxembourg      66966.  2008
+    ## # … with 73,046 more rows
