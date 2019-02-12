@@ -1,0 +1,26 @@
+---
+title: "Exploratory Data Analysis"
+output: 
+  html_document:
+    code_folding: show
+    theme: paper
+    toc: yes
+    toc_float: 
+      collapsed: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+**Last updated**: `r format(Sys.time(), '%B %d, %Y')`
+
+Do flows in source vs target info scatterplot
+
+
+```{r, message=FALSE}
+source_info <- read_csv("source_info.csv")
+target_info <- read_csv("target_info.csv")
+```
+
