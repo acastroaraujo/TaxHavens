@@ -10,17 +10,163 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center",
+                      fig.width = 5, fig.height = 4)
 library(tidyverse)
+
+theme_set(theme_minimal(base_family = "Avenir", base_line_size = 0.5))
 ```
 
 **Last updated**: `r format(Sys.time(), '%B %d, %Y')`
 
-Do flows in source vs target info scatterplot
-
-
 ```{r, message=FALSE}
 source_info <- read_csv("source_info.csv")
 target_info <- read_csv("target_info.csv")
+```
+
+## Mismatches in FDI data:
+
+See [**here**](https://acastroaraujo.github.io/TaxHavens/guideline.pdf) for an explanation on on the meaning of these mismatches.
+
+```{r, message=FALSE, warning=FALSE, fig.width=6}
+df <- right_join(target_info, source_info,
+           by = c("source" = "source", 
+                  "target" = "target", 
+                  "year" = "year")) %>% 
+  mutate(diff = abs(flow.x - flow.y)) %>% 
+  mutate(dyad = str_c(source, " -> ", target)) 
+
+df %>%   
+ggplot(aes(flow.x / 100, flow.y / 100, color = diff / 100)) + 
+  geom_point(alpha = 0.6) + 
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, alpha = 0.5, size = 0.5) +
+  scale_color_viridis_c(direction = -1, labels = scales::dollar) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_x_continuous(labels = scales::dollar) +
+  labs(x = "target info", y = "source info", caption = "(billions of US dollars)", color = "mismatch")
+
+```
+
+## Top offenders by year:
+
+```{r}
+for (i in 2001:2012) {
+  print(df %>% 
+  filter(year == i) %>% 
+  group_by(year) %>% 
+  filter(rank(-diff) <= 10) %>% 
+  ggplot(aes(x = fct_reorder(dyad, diff), y = diff / 100)) +
+  geom_point() + 
+  facet_wrap(~ year, scales = "free") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(x = NULL, y = "Size of mismatch", caption = "(billions of US dollars)")
+  )
+}
+```
+
+## Top offenders by year (weighted by target country's GDP)
+
+```{r}
+wdi_varlist <- readRDS("wdi_data/wdi_varlist.RDS")
+
+gdp <- readRDS("wdi_data/wdi_data.RDS") %>% 
+  select(country, continent, year, NY.GDP.MKTP.CD) %>% ## GDP (current US$)
+  rename(gdp = NY.GDP.MKTP.CD) %>% 
+  ungroup()
+
+target_info <- target_info %>%
+  left_join(rename(gdp, source = country)) %>% 
+  rename(source_gdp = gdp, source_continent = continent) %>% 
+  left_join(rename(gdp, target = country)) %>% 
+  rename(target_gdp = gdp, target_continent = continent)
+
+source_info <- source_info %>%
+  left_join(rename(gdp, source = country)) %>% 
+  rename(source_gdp = gdp, source_continent = continent) %>% 
+  left_join(rename(gdp, target = country)) %>% 
+  rename(target_gdp = gdp, target_continent = continent)
+
+
+df <- right_join(target_info, source_info,
+           by = c("source" = "source", 
+                  "target" = "target", 
+                  "year" = "year",
+                  "target_continent" = "target_continent",
+                  "source_continent" = "source_continent",
+                  "source_gdp" = "source_gdp",
+                  "target_gdp" = "target_gdp")) %>% 
+  mutate(diff = abs(flow.x - flow.y)) %>% 
+  mutate(dyad = str_c(source, " -> ", target)) 
+```
+
+```{r}
+for (i in 2001:2012) {
+  print(df %>% 
+  mutate(diff_w = (diff * 1e6 / target_gdp)) %>% 
+  filter(year == i) %>% 
+  drop_na() %>% 
+  filter(rank(-diff_w) <= 10) %>% 
+  ggplot(aes(x = fct_reorder(dyad, diff_w), y = diff_w)) +
+  geom_point() + 
+  facet_wrap(~ year, scales = "free") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = NULL, y = "Size of mismatch", caption = "(% of target country's GDP)")
+  )
+}
+
+```
+
+**DOUBLE CHECK THIS**
+
+## Top offenders by year (weighted by source country's GDP)
+
+```{r}
+for (i in 2001:2012) {
+  print(df %>% 
+  mutate(diff_w = (diff * 1e6 / source_gdp)) %>% 
+  filter(year == i) %>% 
+  drop_na() %>% 
+  filter(rank(-diff_w) <= 10) %>% 
+  ggplot(aes(x = fct_reorder(dyad, diff_w), y = diff_w)) +
+  geom_point() + 
+  facet_wrap(~ year, scales = "free") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = NULL, y = "Size of mismatch", caption = "(% of source country's GDP)")
+  )
+}
+  
+```
+
+**DOUBLE CHECK THIS**
+
+## Traditional measurement of tax havens
+
+$$
+ff_i = \frac{\text{in-degree}_i}{\text{GDP}_i}
+$$
+
+```{r}
+for (i in 2001:2012) {
+  print(target_info %>% 
+  mutate(ff = flow * 1e6 / target_gdp) %>% 
+  group_by(target, year) %>% 
+  summarise(m = sum(ff)) %>% 
+  filter(year == i) %>% 
+  ungroup() %>% 
+  drop_na() %>% 
+  filter(rank(-abs(m)) <= 10) %>% 
+  ggplot(aes(x = reorder(target, m), y = m)) +
+  geom_point() + 
+  facet_wrap(~ year, scales = "free") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = NULL, y = "In-degree / GDP")
+  )
+}
+
 ```
 
