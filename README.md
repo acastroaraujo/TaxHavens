@@ -3,8 +3,8 @@ Traditional research on tax havens –and more broadly, the network of global co
 
 ## Contents
 
-- `guideline.pdf` is the research proposal I first wrote for Augustin Chaintreau's Social Networks class.
+- [`guideline.pdf](https://acastroaraujo.github.io/TaxHavens/guideline.pdf)` is the research proposal I first wrote for Augustin Chaintreau's Social Networks class.
 
-- `0-data.Rmd` includes web scraping and the creation of two datasets.
+- [`0-data.html`](https://acastroaraujo.github.io/TaxHavens/0-data.html) includes web scraping and the creation of two datasets.
 
 - `1-EDA.Rmd` includes exploratory data analysis and a Shiny app, available [HERE].
