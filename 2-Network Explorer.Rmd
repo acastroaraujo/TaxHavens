@@ -134,26 +134,53 @@ library(ggraph)
 library(igraph)
 library(tidygraph)
 
-make_flows <- function(t = "Colombia", y = 2012) {
-  theme_map <- theme_void(base_family = "Palatino") + 
-    theme(plot.background = element_rect(fill = "antiquewhite"))
+get_iso <- function(x) {
+  countrycode::countrycode(
+    x, origin = "country.name", 
+    destination = "iso3c")
+}
 
-  Gt <- graph_from_data_frame(
-    target_info %>% 
-      filter(target == t, year == y)
-    ) %>% 
+make_flows <- function(country = "Colombia", y = 2005, info = "target", direction = "inflow") {
+  theme_map <- theme_void(base_family = "Palatino") + 
+    theme(plot.background = element_rect(fill = "white", colour = "white"),
+          plot.title = element_text(hjust = 0.5))
+  
+  if (direction == "inflow") {
+    type <- quote(target)
+    other <- quote(source)
+  }
+  
+  if (direction == "outflow") {
+    type <- quote(source)
+    other <- quote(target)
+  }
+
+  if (info == "target") {
+    df <- target_info %>% 
+      filter(!!type == country, year == y, flow != 0) %>% 
+      mutate(iso = get_iso(!!other),
+             edge_weight = abs(flow) * 1e5 / 
+             ifelse(type == "inflow", target_gdp, source_gdp)
+             ) 
+  }
+  if (info == "source") {
+    df <- source_info %>% 
+      filter(!!type == country, year == y, flow != 0) %>% 
+      mutate(iso = get_iso(!!other),
+             edge_weight = abs(flow) * 1e5 / 
+             ifelse(type == "inflow", target_gdp, source_gdp)
+             ) 
+  }
+  
+  Gt <- graph_from_data_frame(df) %>% 
     as_tbl_graph() %>% 
-    activate(edges) %>% 
-    filter(flow != 0) %>% 
-    mutate(type = ifelse(flow < 0, "negative", "positive"),
-           edge_weight = abs(flow) * 1e5 / target_gdp
-           ) %>% 
     activate(nodes) %>% 
     left_join(node_info) %>% 
-    left_join(target_info_sizes %>%
-                filter(year == y),
-              by = c("name" = "target")) %>% 
-    rename(node_size = size)
+    activate(edges) %>% 
+    mutate(active = case_when(
+      flow < 0 ~ "negative",
+      flow > 0 ~ "positive"
+    ))
   
   lay <- create_layout(
     graph = Gt, 
@@ -163,37 +190,80 @@ make_flows <- function(t = "Colombia", y = 2012) {
       x = lon, y = lat)
     )
   
+  world_df <- world_data %>% 
+    left_join(df) %>% 
+    mutate(active = case_when(
+      flow < 0 ~ "negative",
+      flow > 0 ~ "positive",
+      region == country ~ "focus"
+    ))
+  
   country_shapes <- geom_polygon(
-    aes(x = long, y = lat, group = group, fill = active),
-    data = world_data <- world_data %>% 
-    mutate(active = ifelse(iso %in% V(Gt)$iso, TRUE, FALSE)),
+    aes(x = long, y = lat, group = group, 
+        fill = active, alpha = edge_weight),
+    data = world_df,
     color = "grey",
     size = 0.05,
     show.legend = FALSE)
   
   g <- ggraph(lay) + 
     country_shapes +
-    geom_edge_arc(aes(color = type, alpha = edge_weight), 
+    geom_edge_arc(aes(color = active, alpha = edge_weight), 
                   curvature = 1/3, show.legend = FALSE,
                   arrow = arrow(length = unit(0.1, "cm")),
                   end_cap = circle(0.1, "cm"),
-                  start_cap = circle(0.1, "cm"),
+                  start_cap = circle(0, "cm"),
                   width = 0.8) +
     theme_map + mapcoords +
-    scale_edge_color_manual(values = c("red", "forestgreen")) +
-    scale_fill_manual(values = c("white", "grey")) +
-    labs(caption = paste0("Foreign Direct Investment to ", t, ", ", y))
+    scale_edge_color_manual(values = c("red", "green3")) +
+    scale_fill_manual(values = c("black", "red", "green3"))
   
+  if (direction == "inflow") {
+    g <- g + 
+      labs(title = paste0("Foreign Direct Investment to ", country, ", ", y))
+  }
+  if (direction == "outflow") {
+    g <- g + 
+      labs(title = paste0("Foreign Direct Investment from ", country, ", ", y))
+    }  
   return(g)
 }
-
-
-
-    
-make_flows(t = "Colombia", 2005)
-make_flows(t = "Panama", 2008)
-make_flows(t = "Bahamas", 2008)
 ```
 
+```{r}
+make_table <- function(country = "Colombia", y = 2005, info = "target", direction = "inflow") {
+  if (direction == "inflow") {
+    type <- quote(target)
+    other <- quote(source)
+  }
+  
+  if (direction == "outflow") {
+    type <- quote(source)
+    other <- quote(target)
+  }
+  
+  if (info == "target") {
+    output <- target_info %>% 
+      filter(!!type == country, year == y, flow != 0) %>% 
+      select(!!other, !!type, flow) %>% 
+      arrange(-abs(flow))
+  }
+  
+  if (info == "source") {
+    output <- source_info %>% 
+      filter(!!type == country, year == y) %>% 
+      select(!!other, !!type, flow) %>% 
+      arrange(-abs(flow))
+  }
+  return(output)
+}
+
+```
+
+```{r}
+make_flows("Japan", 2012, info = "target", direction = "inflow")
+make_table("Japan", 2012, info = "target", direction = "outflow")
+
+```
 
 
