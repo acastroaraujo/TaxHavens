@@ -214,14 +214,27 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
                   end_cap = circle(0.1, "cm"),
                   start_cap = circle(0, "cm"),
                   width = 0.8) +
-    theme_map + mapcoords +
-    scale_edge_color_manual(values = c("red", "green3")) +
-    scale_fill_manual(values = c("black", "red", "green3"))
+    theme_map + mapcoords
+  
+  if (any(df$flow < 0, na.rm = TRUE) & any(df$flow > 0)) {
+    g <- g + 
+      scale_edge_color_manual(values = c("red", "green3")) +
+      scale_fill_manual(values = c("black", "red", "green3"))
+  } else if (any(df$flow > 0)) {
+    g <- g + 
+      scale_edge_color_manual(values = c("green3")) +
+      scale_fill_manual(values = c("black", "green3"))
+  } else if (any(df$flow < 0)) {
+    g <- g +
+      scale_edge_color_manual(values = c("red")) +
+      scale_fill_manual(values = c("black", "red"))
+  }
   
   if (direction == "inflow") {
     g <- g + 
       labs(title = paste0("Foreign Direct Investment to ", country, ", ", y))
   }
+  
   if (direction == "outflow") {
     g <- g + 
       labs(title = paste0("Foreign Direct Investment from ", country, ", ", y))
@@ -267,13 +280,7 @@ make_table("Japan", 2012, info = "source", direction = "inflow")
 
 
 ```{r}
-make_flows("China", 2012, "target", "inflow")
-make_table("China", 2012, "target", "inflow")
-make_flows("China", 2012, "source", "inflow")
-make_table("China", 2012, "source", "inflow") %>%
-  mutate(flow = round(flow, 2)) %>% 
-  rename(Source = source, Target = target, 
-         "Flow (millions of US dollars)" = flow) %>% 
-  DT::datatable(rownames = FALSE)
+make_flows(country = "China", y = 2010, info = "target", direction = "inflow")
+make_table("China", 2010, "target", "inflow")
 ```
 
