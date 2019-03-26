@@ -9,3 +9,5 @@ Traditional research on tax havens –and more broadly, the network of global co
 
 - [**`1-EDA.html`**](https://acastroaraujo.github.io/TaxHavens/1-EDA.html) includes exploratory data analysis.
 
+- [**Shiny App**](https://acastroaraujo.shinyapps.io/FDI_network_map/). The process behind this interactive visualization can be found [here](https://acastroaraujo.github.io/TaxHavens/2-Network_Explorer.html).
+

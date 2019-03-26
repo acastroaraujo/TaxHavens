@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.align = "center")
 ```
 
-This notebook goes over the steps necessary to create **THIS** Shiny app.
+This notebook goes over the steps necessary to create [**THIS**](https://acastroaraujo.shinyapps.io/FDI_network_map/) Shiny app.
 
 ```{r}
 library(tidyverse)
@@ -261,9 +261,19 @@ make_table <- function(country = "Colombia", y = 2005, info = "target", directio
 ```
 
 ```{r}
-make_flows("Japan", 2012, info = "target", direction = "inflow")
-make_table("Japan", 2012, info = "target", direction = "outflow")
-
+make_flows("Japan", 2012, info = "source", direction = "inflow")
+make_table("Japan", 2012, info = "source", direction = "inflow")
 ```
 
+
+```{r}
+make_flows("China", 2012, "target", "inflow")
+make_table("China", 2012, "target", "inflow")
+make_flows("China", 2012, "source", "inflow")
+make_table("China", 2012, "source", "inflow") %>%
+  mutate(flow = round(flow, 2)) %>% 
+  rename(Source = source, Target = target, 
+         "Flow (millions of US dollars)" = flow) %>% 
+  DT::datatable(rownames = FALSE)
+```
 
