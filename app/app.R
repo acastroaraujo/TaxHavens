@@ -135,7 +135,7 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
     country_shapes +
     geom_edge_arc(aes(color = active, alpha = edge_weight), 
                   curvature = 1/3, show.legend = FALSE,
-                  arrow = arrow(length = unit(0.1, "cm")),
+                  arrow = arrow(length = unit(0.2, "cm")),
                   end_cap = circle(0.1, "cm"),
                   start_cap = circle(0, "cm"),
                   width = 0.8) +
@@ -230,21 +230,30 @@ ui <- fluidPage(
   # Outputs
   fluidRow(
     column(10, offset = 1,
-           plotOutput(outputId = "map"),
-           DT::dataTableOutput(outputId = "df"))
-    ),
+           plotOutput(outputId = "map"))),
+  
+  fluidRow(column(10, offset = 1,
+      # Show data table
+      checkboxInput(inputId = "show_data",
+                    label = "Show data",
+                    value = FALSE)
+    )),
+  
+  fluidRow(column(10, offset = 1,
+           DT::dataTableOutput(outputId = "df")
+           )),
   
   # Text
   fluidRow(
     column(10, offset = 1, hr(),
-           HTML("Foreign direct investments are investments that take the form of <i>controlling ownership</i> of corporations in one country by corporations based in another country. These ownership relationships get recorded in FDI statistics at the country level."),
+           HTML("Foreign Direct Investments are investments made by corporations in one country, that take the form of <i>controlling ownership</i> of corporations based in another country. These ownership relationships get recorded in FDI statistics at the country level."),
            br(), br(),
            HTML("As such, each country reports two types of information:"), 
            br(), br(),
            HTML("<ul><li>",
-                "<strong> Outward FDI </strong>. These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
+                "<strong> Outward FDI</strong>. These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
                 "</li><br><li>",
-                "<strong> Outward FDI </strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
+                "<strong> Outward FDI</strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
            br(),
            HTML("In other words, the arrows <i>do not</i> represent simple flows of money. Instead, they represent investment decisions taken by corporations in the <i>source</i> country inside the <i>target</i> country."),
            br(), br(),
@@ -265,13 +274,14 @@ server <- function(input, output) {
                info = input$info, direction = input$direction)
   })
   
-  output$df <- DT::renderDataTable({
+  output$df <- DT::renderDataTable(
+    if (input$show_data) {
     make_table(country = input$country, y = input$year, 
                info = input$info, direction = input$direction) %>% 
       mutate(flow = round(flow, 2)) %>% 
       rename(Source = source, Target = target, 
              "FDI (Millions of US Dollars)" = flow) %>% 
-      DT::datatable(rownames = FALSE)
+      DT::datatable(rownames = FALSE, options = list(lengthMenu = c(5, 10, 30, 50)))
   })
   
 }
