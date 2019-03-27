@@ -195,7 +195,7 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
     mutate(active = case_when(
       flow < 0 ~ "negative",
       flow > 0 ~ "positive",
-      region == country ~ "focus"
+      iso == get_iso(country) ~ "focus"
     ))
   
   country_shapes <- geom_polygon(
@@ -244,7 +244,7 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
 ```
 
 ```{r}
-make_table <- function(country = "Colombia", y = 2005, info = "target", direction = "inflow") {
+make_table <- function(country = "Cayman Islands", y = 2005, info = "source", direction = "inflow") {
   if (direction == "inflow") {
     type <- quote(target)
     other <- quote(source)
@@ -271,6 +271,8 @@ make_table <- function(country = "Colombia", y = 2005, info = "target", directio
   return(output)
 }
 
+
+make_table()
 ```
 
 ```{r}
@@ -280,7 +282,12 @@ make_table("Japan", 2012, info = "source", direction = "inflow")
 
 
 ```{r}
-make_flows(country = "China", y = 2010, info = "target", direction = "inflow")
+make_flows(country = "Congo - Brazzaville", y = 2010, info = "target", direction = "inflow")
 make_table("China", 2010, "target", "inflow")
+
+
+source_info %>% 
+  filter(str_detect(source, "Congo")) %>% 
+  pull(source)
 ```
 

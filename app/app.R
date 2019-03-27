@@ -116,7 +116,7 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
     mutate(active = case_when(
       flow < 0 ~ "negative",
       flow > 0 ~ "positive",
-      region == country ~ "focus"
+      iso == get_iso(country) ~ "focus"
     ))
   
   country_shapes <- geom_polygon(
@@ -150,16 +150,6 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
       scale_edge_color_manual(values = c("red")) +
       scale_fill_manual(values = c("black", "red"))
   }
-  
-  if (direction == "inflow") {
-    g <- g + 
-      labs(title = paste0("Foreign Direct Investment to ", country, ", ", y))
-  }
-  
-  if (direction == "outflow") {
-    g <- g + 
-      labs(title = paste0("Foreign Direct Investment from ", country, ", ", y))
-  }  
   return(g)
 }
 
@@ -203,19 +193,19 @@ ui <- fluidPage(
   
   # Inputs
   fluidRow(
-    # Select information source
-    column(3, radioButtons(inputId = "info",
-                           label = "Source of information: ",
-                           choices = list("Target countries" = "target",
-                                          "Source countries" = "source"),
-                           selected = "target")),
+    # Select country
+    column(3, selectInput(inputId = "country",
+                          label = "Country: ",
+                          choices = unique(target_info$target),
+                          selected = "Colombia")),
+    
     # Select direction of FDI flows
     column(3, radioButtons(inputId = "direction",
                            label = "Direction of FDI flows: ",
                            choices = c("Inflows" = "inflow",
                                        "Outflows" = "outflow"),
                            selected = "inflow")),
-                  
+    
     # Select year
     column(3, sliderInput(inputId = "year",
                           label = "Year: ",
@@ -223,19 +213,38 @@ ui <- fluidPage(
                           value = 2012,
                           step = 1, 
                           sep = "", ticks = FALSE)),
-                  
-    # Select country
-    column(3, selectInput(inputId = "country",
-                          label = "Country: ",
-                          choices = unique(target_info$target),
-                          selected = "Colombia"))
+    
+    # Select information source
+    column(3, radioButtons(inputId = "info",
+                           label = "Source of information: ",
+                           choices = list("Target countries" = "target",
+                                          "Source countries" = "source"),
+                           selected = "target"))
     ),
                 
   # Outputs
   fluidRow(
     column(10, offset = 1,
            plotOutput(outputId = "map"),
-           DT::dataTableOutput(outputId = "df")))
+           DT::dataTableOutput(outputId = "df"))
+    ),
+  
+  # Text
+  fluidRow(
+    column(10, offset = 1, br(),
+           HTML("Foreign direct investments are investments that take the form of <i>controlling ownership</i> of corporations in one country by corporations based in another country. These ownership relationships get recorded in FDI statistics at the country level."),
+           br(), br(),
+           HTML("As such, each country reports two types of information:"), 
+           br(), br(),
+           HTML("<ul><li>",
+                "<strong> Outward FDI. </strong> These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
+                "</li><br><li>",
+                "<strong> Outward FDI. </strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
+           br(),
+           HTML("In other words, the arrows <i>do not</i> represent simple flows of money. Instead, they represent investment decisions taken by corporations in the <i>source</i> country inside the <i>target</i> country."),
+           br(), br(), br()
+           )
+  )
 )
 
 
