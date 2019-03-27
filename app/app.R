@@ -237,12 +237,14 @@ ui <- fluidPage(
            HTML("As such, each country reports two types of information:"), 
            br(), br(),
            HTML("<ul><li>",
-                "<strong> Outward FDI. </strong> These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
+                "<strong> Outward FDI. </strong>. These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
                 "</li><br><li>",
-                "<strong> Outward FDI. </strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
+                "<strong> Outward FDI </strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
            br(),
            HTML("In other words, the arrows <i>do not</i> represent simple flows of money. Instead, they represent investment decisions taken by corporations in the <i>source</i> country inside the <i>target</i> country."),
-           br(), br(), br()
+           br(), br(),
+           HTML("Source of data: <a href='https://unctad.org/en/Pages/DIAE/FDI%20Statistics/FDI-Statistics-Bilateral.aspx'> UNCTAD Bilateral FDI Statistics</a>"),
+           br(), br()
            )
   )
 )
