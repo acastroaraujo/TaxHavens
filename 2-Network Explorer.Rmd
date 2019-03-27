@@ -285,9 +285,5 @@ make_table("Japan", 2012, info = "source", direction = "inflow")
 make_flows(country = "Congo - Brazzaville", y = 2010, info = "target", direction = "inflow")
 make_table("China", 2010, "target", "inflow")
 
-
-source_info %>% 
-  filter(str_detect(source, "Congo")) %>% 
-  pull(source)
 ```
 

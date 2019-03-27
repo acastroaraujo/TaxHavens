@@ -124,7 +124,7 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
         fill = active, alpha = edge_weight),
     data = world_df,
     color = "grey",
-    size = 0.05,
+    size = 0.1,
     show.legend = FALSE)
   
   g <- ggraph(lay) + 
@@ -139,21 +139,21 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
   
   if (any(df$flow < 0, na.rm = TRUE) & any(df$flow > 0)) {
     g <- g + 
-      scale_edge_color_manual(values = c("red", "green3")) +
-      scale_fill_manual(values = c("black", "red", "green3"))
+      scale_edge_color_manual(values = c("red", "steelblue1")) +
+      scale_fill_manual(values = c("grey", "red", "steelblue1"))
   } else if (any(df$flow > 0)) {
     g <- g + 
-      scale_edge_color_manual(values = c("green3")) +
-      scale_fill_manual(values = c("black", "green3"))
+      scale_edge_color_manual(values = c("steelblue1")) +
+      scale_fill_manual(values = c("grey", "steelblue1"))
   } else if (any(df$flow < 0)) {
     g <- g +
       scale_edge_color_manual(values = c("red")) +
-      scale_fill_manual(values = c("black", "red"))
+      scale_fill_manual(values = c("grey", "red"))
   }
   return(g)
 }
 
-make_table <- function(country = "Colombia", y = 2005, info = "target", direction = "inflow") {
+make_table <- function(country, y, info, direction) {
   if (direction == "inflow") {
     type <- quote(target)
     other <- quote(source)
@@ -189,14 +189,15 @@ library(shiny)
 
 ui <- fluidPage(
   theme = shinythemes::shinytheme("journal"),
-  titlePanel("Foreign Direct Investment Network Explorer"),
+  titlePanel("Foreign Direct Investment Network Explorer", 
+             windowTitle = "FDI Net Explorer"),
   
   # Inputs
   fluidRow(
     # Select country
     column(3, selectInput(inputId = "country",
                           label = "Country: ",
-                          choices = unique(target_info$target),
+                          choices = unique(c(target_info$target, source_info$target)),
                           selected = "Colombia")),
     
     # Select direction of FDI flows
@@ -210,7 +211,7 @@ ui <- fluidPage(
     column(3, sliderInput(inputId = "year",
                           label = "Year: ",
                           min = 2001, max = 2012,
-                          value = 2012,
+                          value = 2007,
                           step = 1, 
                           sep = "", ticks = FALSE)),
     
@@ -231,13 +232,13 @@ ui <- fluidPage(
   
   # Text
   fluidRow(
-    column(10, offset = 1, br(),
+    column(10, offset = 1, hr(),
            HTML("Foreign direct investments are investments that take the form of <i>controlling ownership</i> of corporations in one country by corporations based in another country. These ownership relationships get recorded in FDI statistics at the country level."),
            br(), br(),
            HTML("As such, each country reports two types of information:"), 
            br(), br(),
            HTML("<ul><li>",
-                "<strong> Outward FDI. </strong>. These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
+                "<strong> Outward FDI </strong>. These are direct investments abroad made by investors in the reporting country. In other words, they represent transactions made by domestic investors that increase their investment in corporations based in a foreign country. If the transactions actually decrease their investment, then they are recorded as a <i> negative transaction</i>.",
                 "</li><br><li>",
                 "<strong> Outward FDI </strong>. These are direct investments inside the reporting country that come from foreign investors. These can also be positive or negative numbers. </li></ul>"),
            br(),
