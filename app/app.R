@@ -93,6 +93,10 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
       ) 
   }
   
+  if (nrow(df) == 0) {
+    return("No data available for this selection.")
+  }
+  
   Gt <- graph_from_data_frame(df) %>% 
     as_tbl_graph() %>% 
     activate(nodes) %>% 

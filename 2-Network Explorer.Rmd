@@ -140,7 +140,7 @@ get_iso <- function(x) {
     destination = "iso3c")
 }
 
-make_flows <- function(country = "Colombia", y = 2005, info = "target", direction = "inflow") {
+make_flows <- function(country = "Eritrea", y = 2012, info = "target", direction = "inflow") {
   theme_map <- theme_void(base_family = "Palatino") + 
     theme(plot.background = element_rect(fill = "white", colour = "white"),
           plot.title = element_text(hjust = 0.5))
@@ -170,6 +170,10 @@ make_flows <- function(country = "Colombia", y = 2005, info = "target", directio
              edge_weight = abs(flow) * 1e5 / 
              ifelse(type == "inflow", target_gdp, source_gdp)
              ) 
+  }
+  
+  if (nrow(df) == 0) {
+    return("No data available for this selection.")
   }
   
   Gt <- graph_from_data_frame(df) %>% 
@@ -284,6 +288,10 @@ make_table("Japan", 2012, info = "source", direction = "inflow")
 ```{r}
 make_flows(country = "Congo - Brazzaville", y = 2010, info = "target", direction = "inflow")
 make_table("China", 2010, "target", "inflow")
+
+
+
+make_flows("Eritrea", 2012, "target", "inflow")
 
 ```
 
