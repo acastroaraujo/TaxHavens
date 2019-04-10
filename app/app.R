@@ -236,7 +236,7 @@ ui <- fluidPage(
       # Show data table
       checkboxInput(inputId = "show_data",
                     label = "Show data",
-                    value = FALSE)
+                    value = TRUE)
     )),
   
   fluidRow(column(10, offset = 1,
